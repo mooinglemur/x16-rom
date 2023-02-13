@@ -15,14 +15,14 @@ jobs:
           python-version: '3.9'
       - name: Install Dependencies
         run: |
-          sudo apt-get install -y make build-essential
+          sudo apt-get install -y make build-essential perl
           git clone https://github.com/cc65/cc65.git
           cd cc65
           make -j4
           sudo make install
       - name: Build ROM
         run: |
-          export PRERELEASE_VERSION=$(echo "$GITHUB_REF" | sed -e 's/^.*r\([0-9]+\)$/\1/')
+          export PRERELEASE_VERSION=$(echo "$GITHUB_REF" | perl -pe 's/^.*r([0-9]+)$/$1/')
           make
           mkdir artifact
           cp build/x16/*.h artifact/.
