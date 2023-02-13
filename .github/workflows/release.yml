@@ -28,7 +28,7 @@ jobs:
           sudo make install
       - name: Build ROM
         run: |
-          make
+          make -DPRERELEASE_VERSION=42
           mkdir artifact
           cp build/x16/*.h artifact/.
           cp build/x16/*.sym artifact/.
