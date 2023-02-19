@@ -30,3 +30,15 @@ jobs:
         with:
           name: ROM Image
           path: artifact
+      - name: Trigger x16-emulator build
+        if: github.repository_owner == 'mooinglemur'
+        uses: actions/github-script@v6
+        with:
+          github-token: ${{ secrets.PAT_TOKEN }}
+          script: |
+            await github.rest.actions.createWorkflowDispatch({
+              owner: 'mooinglemur',
+              repo: 'x16-emulator',
+              workflow_id: 'build.yml',
+              ref: 'master'
+            })
