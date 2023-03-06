@@ -1,5 +1,10 @@
 name: ROM Release Build CI
 
+on:
+  push:
+    tags:
+    - 'r42'
+
 jobs:
   build:
     runs-on: ubuntu-latest
