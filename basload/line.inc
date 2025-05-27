@@ -237,10 +237,10 @@ ifoption:
 
     ; Symbol start?
 symstrt:   
-    cmp #'a'
+    cmp #'A'
     bcs :+
     jmp fake_copy
-:   cmp #'z'+1
+:   cmp #'Z'+1
     bcc :+
     jmp fake_copy
 
@@ -252,9 +252,9 @@ symstrt:
 
 symbol:
     ; Alphabetic chars are allowed in symbol names, continue if found
-    cmp #'a'
+    cmp #'A'
     bcc :+
-    cmp #'z'+1
+    cmp #'Z'+1
     bcs :+
     jmp next
 
@@ -647,9 +647,9 @@ ishex:
     jmp copy
 
     ; Symbol - A BASIC command, a label or a variable, starting with chars A..Z
-:   cmp #'a'
+:   cmp #'A'
     bcc :+
-    cmp #'z'+1
+    cmp #'Z'+1
     bcs :+
     ldx #LINE_SYMBOL
     stx state
@@ -731,9 +731,9 @@ hexnum:
     jmp copy
 
 :   ; A..F?
-    cmp #'a'
+    cmp #'A'
     bcc :+
-    cmp #'f'+1
+    cmp #'F'+1
     bcs :+
     jmp copy
 
@@ -795,9 +795,9 @@ decnum:
 
 symbol:
     ; Alphabetic chars are allowed in symbol names, continue if found
-    cmp #'a'
+    cmp #'A'
     bcc :+
-    cmp #'z'+1
+    cmp #'Z'+1
     bcc symbol_cont
 
     ; Points are allowed in a symbol name, continue if found
