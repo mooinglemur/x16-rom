@@ -1,3 +1,5 @@
+.include "ascii_charmap.inc"
+
 ; Exports needed for unit testing
 .export line_init, line_pass1, line_pass2
 
@@ -24,6 +26,7 @@ LINE_BACKSLASH = 18
     line_autonum: .res 1
     line_option_controlcodes: .res 1
     line_pass: .res 1
+    mem_top: .res 2
 .CODE
 
 ;******************************************************************************
@@ -42,14 +45,38 @@ LINE_BACKSLASH = 18
     lda #1
     sta line_autonum
 
-    ; Setup pointers to BASIC memory, starting at $0801
-    lda #$01
+    ; Setup pointers to BASIC memory
+    bridge_setaddr KERNAL_MEMBOT    ; Get start of BASIC memory
+    sec
+    bridge_call
+    stx line_meta
+    sty line_meta+1
+    
+    lda #0                          ; Store 0 at first address
+    sta (line_meta)
+
+    clc                             ; First line begins at memory bottom + 1 (line number, pointer to next line)
+    lda line_meta
+    adc #1
     sta line_meta
-    lda #$05
-    sta line_code
-    lda #$08
+    lda line_meta+1
+    adc #0
     sta line_meta+1
+
+    clc                             ; Actual code begins at start + 5
+    lda line_meta
+    adc #4
+    sta line_code
+    lda line_meta+1
+    adc #0
     sta line_code+1
+
+    bridge_setaddr KERNAL_MEMTOP
+    sec
+    bridge_call
+    dey
+    stx mem_top
+    sty mem_top+1
 
     ; Set default options
     stz line_option_rem ; Remove REms
@@ -124,7 +151,8 @@ eol:
 switch_state:
     ldy state
     cpy #LINE_SYMBOL
-    beq symbol
+    bne default
+    jmp symbol
 
 default:
     ; Whitespace - Ignored outside strings and REM statements
@@ -138,9 +166,9 @@ default:
 
     ; Option?
 :   cmp #35
-    bne symstrt
+    bne ifoption
     ldx index_dst
-    bne symstrt
+    bne ifoption
 
     ldx index_src
     inx
@@ -173,9 +201,40 @@ default:
     bne :+
     sec
     rts
-    
+
+:   cmp #$fc
+    bne :+
+    clc
+    lda #RESPONSE_DUPLICATE_SYMBOL
+    jsr response_set
+    sec
+    rts
+
+:   cmp #$fb
+    bne :+
+    clc
+    lda #RESPONSE_TOO_MANY_NESTED_IFS
+    jsr response_set
+    sec
+    rts
+
+:   cmp #$fa
+    bne :+
+    clc
+    lda #RESPONSE_ENDIF_WITHOUT_IF
+    jsr response_set
+    sec
+    rts
+
 :   jmp eol
-    
+
+ifoption:
+    ldy option_if_level
+    beq symstrt ; Not within #IF..#ENDIF, continue
+    ldy option_if_flags
+    bmi symstrt ; Within #IF..#ENDIF, continue if bit 7 is true (1)
+    jmp eol ; Else ignore line
+
     ; Symbol start?
 symstrt:   
     cmp #'a'
@@ -367,6 +426,25 @@ next:
     adc #0
     sta line_dstlin+1
 
+    ; Abort if at last page before mem_top
+    clc
+    lda index_dst
+    adc line_code
+    tax
+    lda line_code+1
+    adc #0
+    cmp mem_top+1
+    bcc loop
+    bne mem_full
+    cpx mem_top
+    bcc loop
+mem_full:
+    lda #RESPONSE_BASIC_RAM_FULL
+    sec
+    jsr response_set
+    sec
+    rts
+
 loop:
     ; Get next char from file buffer
     ldx index_src
@@ -458,18 +536,11 @@ default:
     bne :++
 :   jmp next
 
-    ; String
-:   cmp #34 ; Double quote
-    bne :+
-    ldx #LINE_STRING
-    stx state
-    jmp copy
-
     ; Option - Starts with the # sign, must be at beginning of line
 :   cmp #35 ; Hash sign
-    bne ishex
+    bne ifoption
     ldx index_dst
-    bne ishex
+    bne ifoption
     
     ldx index_src
     inx
@@ -498,7 +569,46 @@ default:
     sec
     rts
 
+:   cmp #$fc
+    bne :+
+    clc
+    lda #RESPONSE_DUPLICATE_SYMBOL
+    jsr response_set
+    sec
+    rts
+
+:   cmp #$fb
+    bne :+
+    clc
+    lda #RESPONSE_TOO_MANY_NESTED_IFS
+    jsr response_set
+    sec
+    rts
+
+:   cmp #$fa
+    bne :+
+    clc
+    lda #RESPONSE_ENDIF_WITHOUT_IF
+    jsr response_set
+    sec
+    rts
+
 :   jmp eol
+
+ifoption:
+    ldy option_if_level
+    beq isstr ; Not within #IF..#ENDIF, continue
+    ldy option_if_flags
+    bmi isstr ; Within #IF..#ENDIF, continue if bit 7 is true (1)
+    jmp eol ; Else ignore line
+
+    ; String
+isstr:   
+    cmp #34 ; Double quote
+    bne ishex
+    ldx #LINE_STRING
+    stx state
+    jmp copy
 
     ; Hexadecimal number - Starts with a $ sign
 ishex:
@@ -522,6 +632,7 @@ ishex:
     stx state
     ldx #1
     stx dp_count
+    stz e_count
     jmp copy
 
     ; Decimal number - Alternative 2, starting with a number 0..9
@@ -531,6 +642,8 @@ ishex:
     bcs :+
     ldx #LINE_DECNUM
     stx state
+    stz dp_count
+    stz e_count
     jmp copy
 
     ; Symbol - A BASIC command, a label or a variable, starting with chars A..Z
@@ -657,6 +770,18 @@ decnum:
 
 :   jmp copy
 
+    ; Scientific number (E)?
+:   cmp #'e'
+    beq :+
+    cmp #'E'
+    bne :++
+
+:   inc e_count
+    ldx e_count
+    cpx #2
+    bcc :--- ; First "E", copy to output
+    bra :++ ; More than one "E", clear state and treat as start of new element
+    
     ; 0..9?
 :   cmp #'0'
     bcc :+
@@ -731,32 +856,43 @@ symbol_found:
 :   plp
     pla
     bcs newvar
-    cmp #1
+    cmp #SYMBOLTYPE_VARIABLE
     bne :+
     jmp insvar
-:   cmp #2
+:   cmp #SYMBOLTYPE_TOKEN
     bne :+ 
     jmp instoken
+:   cmp #SYMBOLTYPE_LITERAL_PASS2
+    beq symbol_insert_value
+    cmp #SYMBOLTYPE_LITERAL_PASS1
+    bne :+
+    
+    clc
+    lda #RESPONSE_SYMBOL_NOT_IN_SCOPE
+    jsr response_set
+    sec
+    rts
 
     ; It's a label, insert its line number, if not at start of line
 :   lda index_dst
     bne :+
     inc index_src
-    bra :++++
+    stz state
+    jmp next
 
 :   lda last_token
     cmp #$8d ; Gosub
-    beq :+
+    beq symbol_insert_value
     cmp #$89 ; Goto
-    beq :+
+    beq symbol_insert_value
     cmp #$9b ; List
-    beq :+
+    beq symbol_insert_value
     cmp #$8c ; Restore
-    beq :+
+    beq symbol_insert_value
     cmp #$a7 ; Then
-    beq :+
+    beq symbol_insert_value
     cmp #$a4 ; To
-    beq :+
+    beq symbol_insert_value
     
     clc
     lda #RESPONSE_LABEL_NOT_EXPECTED
@@ -764,7 +900,8 @@ symbol_found:
     sec
     rts
 
-:   lda #0
+symbol_insert_value:
+    lda #0
     jsr util_bin_to_bcd
     lda #0
     jsr util_bcd_to_str
@@ -984,6 +1121,7 @@ jump_table:
     index_src: .res 1
     symbol_start: .res 1    
     dp_count: .res 1
+    e_count: .res 1
     index_dst: .res 1
     last_token: .res 2
     quotes_count: .res 1
