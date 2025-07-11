@@ -1,3 +1,5 @@
+.macpack cbm ; for the scrcode macro
+
 .segment "JMPTBL"
 	; This is only here to make it easy to start the diagnostics
 	; from normal operating mode.
@@ -1096,42 +1098,33 @@ loop:	I2C_WRITE_BYTE $FF, I2C_SMC, SMC_activity_led
 ;!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
 kbd_bin_tbl:	.byte 0,1,4,5,2,3,6,7
-; convert ASCII codes to VERA screen codes
-.repeat $20, i
-	.warning <(i+$40)
-	.charmap <(i+$40), <i
-.endrepeat
-;header:	.asciiz "MEMORY DIAGNOSTIC V0.4 2024 - HTTPS://JNZ.DK?MDIAG"
-header:		.asciiz "MEMORY DIAGNOSTIC V0.41 - HTTPS://COMMANDERX16.COM"
-line:		.asciiz "===================================================="
-first_ok:	.asciiz "LOW RAM $0000-$9EFF INITIAL TEST OK!              PASS#:$0000"
-find_banks:	.asciiz "TESTING HIGHEST MEMORY BANK AVAILABLE... $"
-fill_pattern:	.asciiz "FILLING BANK            $00 WITH BINARY PATTERN "
-test_up:	.asciiz "ASCENDING TEST OF BANK  $00 WITH PATTERN "
-test_dn:	.asciiz "DESCENDING TEST OF BANK $00 WITH PATTERN "
-test_final:	.asciiz "FINAL TEST OF BANK      $00 WITH PATTERN "
-low_ram:	.asciiz "TESTING LOW RAM PAGE    $02 WITH PATTERN "
-first_pattern:	.asciiz "00000000"
-first_invert:	.asciiz "11111111"
-second_pattern:	.asciiz "01010101"
-second_invert:	.asciiz "10101010"
-third_pattern:	.asciiz "00110011"
-third_invert:	.asciiz "11001100"
-fourth_pattern:	.asciiz "00001111"
-fourth_invert:	.asciiz "11110000"
-;err_str:	.asciiz "E$XX$0000:TO$00 ",0
-err_str:	.asciiz "E$"
-err_no_bank:	.asciiz "XX"
-err_up:		.asciiz ":UP$"
-err_dn:		.asciiz ":DN$"
-err_to:		.asciiz ":TO$"
-test_stop:	.asciiz " !!! TOO MANY ERRORS, TEST STOPPED !!! "
-hex_table:	.byte "0123456789ABCDEF"
-; convert ASCII codes back to normal ASCII
-.repeat $20, i
-	.warning <(i+$40)
-	.charmap <(i+$40), <(i+$40)
-.endrepeat
+
+;header:	scrcode "MEMORY DIAGNOSTIC V0.4 2024 - HTTPS://JNZ.DK?MDIAG"
+header:		scrcode "MEMORY DIAGNOSTIC V0.41 - HTTPS://COMMANDERX16.COM@"
+line:		scrcode "====================================================@"
+first_ok:	scrcode "LOW RAM $0000-$9EFF INITIAL TEST OK!              PASS#:$0000@"
+find_banks:	scrcode "TESTING HIGHEST MEMORY BANK AVAILABLE... $@"
+fill_pattern:	scrcode "FILLING BANK            $00 WITH BINARY PATTERN @"
+test_up:	scrcode "ASCENDING TEST OF BANK  $00 WITH PATTERN @"
+test_dn:	scrcode "DESCENDING TEST OF BANK $00 WITH PATTERN @"
+test_final:	scrcode "FINAL TEST OF BANK      $00 WITH PATTERN @"
+low_ram:	scrcode "TESTING LOW RAM PAGE    $02 WITH PATTERN @"
+first_pattern:	scrcode "00000000@"
+first_invert:	scrcode "11111111@"
+second_pattern:	scrcode "01010101@"
+second_invert:	scrcode "10101010@"
+third_pattern:	scrcode "00110011@"
+third_invert:	scrcode "11001100@"
+fourth_pattern:	scrcode "00001111@"
+fourth_invert:	scrcode "11110000@"
+;err_str:	scrcode "E$XX$0000:TO$00 ",0
+err_str:	scrcode "E$@"
+err_no_bank:	scrcode "XX@"
+err_up:		scrcode ":UP$@"
+err_dn:		scrcode ":DN$@"
+err_to:		scrcode ":TO$@"
+test_stop:	scrcode " !!! TOO MANY ERRORS, TEST STOPPED !!! @"
+hex_table:	scrcode "0123456789ABCDEF"
 
 .include "charset.inc"
 
