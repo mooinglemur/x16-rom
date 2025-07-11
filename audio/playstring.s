@@ -546,7 +546,7 @@ waitloop:
 	jsr stop
 	beq stopped
 	ply
-	.byte $cb ; wai
+	.byte $cb ; wai (bare opcode here due to varying CPU types across ca65 versions)
 	dey
 	bne waitloop
 endwait:

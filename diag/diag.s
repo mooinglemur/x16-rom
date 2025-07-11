@@ -1098,7 +1098,7 @@ loop:	I2C_WRITE_BYTE $FF, I2C_SMC, SMC_activity_led
 kbd_bin_tbl:	.byte 0,1,4,5,2,3,6,7
 ; convert ASCII codes to VERA screen codes
 .repeat $20, i
-	.charmap i+$40, i
+	.charmap <(i+$40), <i
 .endrepeat
 ;header:	.asciiz "MEMORY DIAGNOSTIC V0.4 2024 - HTTPS://JNZ.DK?MDIAG"
 header:		.asciiz "MEMORY DIAGNOSTIC V0.41 - HTTPS://COMMANDERX16.COM"
@@ -1128,7 +1128,7 @@ test_stop:	.asciiz " !!! TOO MANY ERRORS, TEST STOPPED !!! "
 hex_table:	.byte "0123456789ABCDEF"
 ; convert ASCII codes back to normal ASCII
 .repeat $20, i
-	.charmap i+$40, i+$40
+	.charmap <(i+$40), <(i+$40)
 .endrepeat
 
 .include "charset.inc"
